@@ -80,20 +80,13 @@ local function sendLogData()
 	local plantItems = getStockFromFrame(seedsScrolling)
 	local gearItems = getStockFromFrame(gearsScrolling)
 
-	local eventsPayload
-	if next(activeEvents) == nil then
-		eventsPayload = "none"
-	else
-		eventsPayload = activeEvents
-	end
-
 	local newLogEntry = {
 		timestamp = os.date("%Y-%m-%d %I:%M:%S %p"),
 		items = {
 			plants = plantItems,
 			gears = gearItems
 		},
-		events = eventsPayload
+		events = "none"
 	}
 
 	local success, encodedJson = pcall(HttpService.JSONEncode, HttpService, newLogEntry)
@@ -116,9 +109,8 @@ end
 local function runLogger()
 	local seedsGui = mainGui:WaitForChild("Seeds", 5)
 	local gearsGui = mainGui:WaitForChild("Gears", 5)
-	local effectsFrame = mainGui:WaitForChild("Effects", 5)
 	
-	if not (seedsGui or effectsFrame) then
+	if not seedsGui then
 		return
 	end
 
@@ -140,28 +132,7 @@ local function runLogger()
 	end
 
 	if gearsGui then
-		gearsScrolling = gearsGui:WaitForChild("Frame", 5) and gearsGui.Frame:WaitForChild("ScrollingFrame", 5)
-	end
-
-	if effectsFrame then
-		effectsFrame.ChildAdded:Connect(function(child)
-			if child:IsA("Frame") then
-				local timerLabel = findEventTimerLabel(child)
-				if timerLabel then
-					local eventName = child.Name
-					local timeLeft = parseTimeToSeconds(timerLabel.Text)
-					activeEvents[eventName] = timeLeft
-					sendLogData()
-				end
-			end
-		end)
-
-		effectsFrame.ChildRemoving:Connect(function(child)
-			if activeEvents[child.Name] then
-				activeEvents[child.Name] = nil
-				sendLogData()
-			end
-		end)
+		gearsScrolling = gearsGui.Frame:WaitForChild("ScrollingFrame", 5)
 	end
 
 	task.wait(1)
