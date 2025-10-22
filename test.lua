@@ -237,19 +237,12 @@ local http_service
 pcall(function()
     http_service = game:GetService("HttpService")
 end)
-local function splitStringByLines(str)
-    local lines = {}
-    for line in string.gmatch(str, "([^\n]*)") do
-        table.insert(lines, line)
-    end
-    return lines
-end
-local function sendToFirebase(data, keyName)
+local function sendToFirebase(data)
     if not http_service then
         print("HttpService is required to send data.")
         return
     end
-    local url = "https://moduledata-78071-default-rtdb.firebaseio.com/" .. keyName .. ".json"
+    local url = "https://moduledata-78071-default-rtdb.firebaseio.com/.json"
     local jsonData
     local success, result = pcall(function()
         jsonData = http_service:JSONEncode(data)
@@ -273,15 +266,14 @@ local targetModule = genv.targetModule
 if targetModule and typeof(targetModule) == "Instance" then
     local success, source_code = getScriptSource(targetModule)
     if success then
-        local lines_array = splitStringByLines(source_code)
-        sendToFirebase(lines_array, "brainrotRegistry")
+        sendToFirebase(source_code)
         print("Decompiled and sent source for " .. targetModule:GetFullName())
     else
         local fail_reason = "Failed to decompile " .. targetModule:GetFullName() .. ": " .. tostring(source_code)
         print(fail_reason)
-        sendToFirebase(fail_reason, "error")
+        sendToFirebase(fail_reason)
     end
 else
     print("not a valid instance.")
-    sendToFirebase("ERROR: genv.targetModule is not a valid instance.", "error")
+    sendToFirebase("ERROR: genv.targetModule is not a valid instance.")
 end
