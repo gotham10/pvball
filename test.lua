@@ -213,15 +213,12 @@ function getScriptSource(scriptInstance, timeout)
     else
         output = "--[[ Failed to decompile. Reason: " .. tostring(decompiled_source) .. " ]]"
     end
-    if output:match("^%s*%-%- Decompiled with") then
-        local first_newline = output:find("\n")
-        if first_newline then
-            output = output:sub(first_newline + 1)
-        else
-            output = ""
-        end
-        output = output:gsub("^%s*\n", "")
+    
+    local match_start, match_end = output:find("^(%-%- .-\n)(%-%- .-\n)(%-%- .-\n)(%-%- .-\n)(%-%- .-\n)%s*\n")
+    if match_start == 1 then
+        output = output:sub(match_end + 1)
     end
+    
     if hashed_bytecode then
         ldeccache[hashed_bytecode] = output
     end
@@ -241,18 +238,18 @@ pcall(function()
     http_service = game:GetService("HttpService")
 end)
 local function sendToFirebase(data)
+    if not http_service then
+        print("HttpService is required to send data.")
+        return
+    end
     local url = "https://moduledata-78071-default-rtdb.firebaseio.com/.json"
     local jsonData
-    if http_service then
+    local success, result = pcall(function()
         jsonData = http_service:JSONEncode(data)
-    else
-        local s = data
-        s = string.gsub(s, "\\", "\\\\")
-        s = string.gsub(s, "\"", "\\\"")
-        s = string.gsub(s, "\n", "\\n")
-        s = string.gsub(s, "\r", "\\r")
-        s = string.gsub(s, "\t", "\\t")
-        jsonData = "\"" .. s .. "\""
+    end)
+    if not success then
+        print("Failed to encode JSON: " .. tostring(result))
+        return
     end
     pcall(function()
         http_request({
