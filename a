@@ -1,0 +1,16 @@
+getgenv().targetModules = {}
+
+local function scanFolder(folder)
+    for _, obj in ipairs(folder:GetChildren()) do
+        if obj:IsA("ModuleScript") then
+            table.insert(getgenv().targetModules, obj)
+        elseif obj:IsA("Folder") then
+            scanFolder(obj)
+        end
+    end
+end
+
+local registries = game:GetService("ReplicatedStorage"):WaitForChild("Modules"):WaitForChild("Registries")
+scanFolder(registries)
+
+loadstring(game:HttpGet("https://raw.githubusercontent.com/gotham10/pvball/main/decompiler"))()
